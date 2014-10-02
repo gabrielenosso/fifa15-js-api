@@ -8,3 +8,11 @@ All API methods are asynchronous, so you have to use a callback for anyone of th
 (If you need to synchronize your code, you can easily use events)
 
 Each method have comments in JavaDoc style to let developers easily understand how to use them.
+
+### Installation
+
+As any other Node app, to install it launch:`npm install`
+
+### Execution
+
+Just launch: `node app.js`
