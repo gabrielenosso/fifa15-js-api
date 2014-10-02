@@ -1,0 +1,8 @@
+{ 
+    "name": "FIFA15-JavaScript-Connector", 
+    "version": "0.0.1",
+    "dependencies": {
+        "request": "*",
+        "tough-cookie": "*"
+    }
+}
