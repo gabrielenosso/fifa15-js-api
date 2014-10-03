@@ -283,6 +283,22 @@
         });
     };
 
+    /**
+     * Get Purchased cards.
+     * It is the page Unassigned, it lists cards purchased with Buy Now. 
+     * @param  {Function} callback The function that will be invoked when the request is completed.
+     *                             It will be invoked with a single parameter: an object containing the watch list.
+     */
+    futapi.getPurchased = function (callback) {
+        request(host + '/ut/game/fifa15/purchased/items', function (error, response, body) {
+            if (!error && response.statusCode == 200) {
+                callback(body);
+            } else {
+                console.log('Error with getPurchased(): ' + error);
+            }
+        });
+    };
+
     // Export the module
     module.exports = futapi;
 }());

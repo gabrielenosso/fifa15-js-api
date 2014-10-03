@@ -70,6 +70,11 @@ function mainLoop(loginData) {
     futapi.getWatchList(function (tradePile) {
         console.log(tradePile);
     });
+
+    // Get Purchased Cards
+    futapi.getPurchased(function (cardList) {
+        console.log(cardList);
+    });
 };
 
 // Get the hashed answer and save it in login details
