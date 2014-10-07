@@ -290,7 +290,9 @@
      *                             It will be invoked with a single parameter: an object containing the watch list.
      */
     futapi.getPurchased = function (callback) {
-        request(host + '/ut/game/fifa15/purchased/items', function (error, response, body) {
+        request.post(host + '/ut/game/fifa15/purchased/items', {
+            json: true
+        }, function (error, response, body) {
             if (!error && response.statusCode == 200) {
                 callback(body);
             } else {
