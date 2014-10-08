@@ -180,9 +180,7 @@
             body: dataString,
             json: true,
             headers: {
-                'X-HTTP-Method-Override': 'POST',
-                'Content-Type': 'application/json',
-                'Content-Length': dataString.length
+                'X-HTTP-Method-Override': 'POST'
             }
         }, function (error, response, body) {
             if (!error && response.statusCode == 200) {
@@ -235,7 +233,10 @@
      *                             It will be invoked with a single parameter: an object containing the trade pile.
      */
     futapi.getTradePile = function (callback) {
-        request(host + '/ut/game/fifa15/tradepile', function (error, response, body) {
+        request({
+            url: host + '/ut/game/fifa15/tradepile',
+            json: true
+        }, function (error, response, body) {
             if (!error && response.statusCode == 200) {
                 callback(body);
             } else {
@@ -290,7 +291,8 @@
      *                             It will be invoked with a single parameter: an object containing the watch list.
      */
     futapi.getPurchased = function (callback) {
-        request.post(host + '/ut/game/fifa15/purchased/items', {
+        request({
+            url: host + '/ut/game/fifa15/purchased/items',
             json: true
         }, function (error, response, body) {
             if (!error && response.statusCode == 200) {
