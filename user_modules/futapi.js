@@ -263,19 +263,17 @@
 
     /**
      * Remove card from sold items list
-     * @param  {Number}   id       ID of the card
-     * @param  {Function} callback It will be invoked with a single parameter: a boolean that is true if the
-     *                             item was moved successfully, false otherwise.
+     * @param  {Number}   tradeId  ID of the trade
+     * @param  {Function} callback It will be invoked with a single parameter: an object containing the result of the operation.
      */
-    futapi.removeSold = function (id, callback) {
-        request.post(host + '/ut/game/fifa15/trade/' + id, {
+    futapi.removeSold = function (tradeId, callback) {
+        request.post(host + '/ut/game/fifa15/trade/' + tradeId, {
             json: true,
             headers: {
                 'X-HTTP-Method-Override': 'DELETE',
                 'Content-Type': 'application/json'
             }
         }, function (error, response, body) {
-            console.log(response.headers, body);
             if (!error && response.statusCode == 200) {
                 callback(body);
             } else {
