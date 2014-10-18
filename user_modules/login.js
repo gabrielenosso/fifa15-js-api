@@ -58,7 +58,8 @@
                 
                 eventEmitter.emit('main.completed', url);
             } else {
-                console.log('Error with main: ' + error);
+                console.log('Error with main: ' + error + ' - ' + response.statusCode);
+                eventEmitter.emit('error');
             }
         })
     });
@@ -79,7 +80,8 @@
             if (!error && response.statusCode == 200) {
                 eventEmitter.emit('login.completed');
             } else {
-                console.log('Error with login: ' + error);
+                console.log('Error with login: ' + error + ' - ' + response.statusCode);
+                eventEmitter.emit('error');
             }
         })
     });
@@ -92,7 +94,8 @@
                 nucleusId = body.match(/var\ EASW_ID = '(\d*)';/)[1]; // Get nucleus id
                 eventEmitter.emit('nucleus.completed');
             } else {
-                console.log('Error with nucleus: ' + error);
+                console.log('Error with nucleus: ' + error + ' - ' + response.statusCode);
+                eventEmitter.emit('error');
             }
         })
     });
@@ -115,7 +118,8 @@
             if (!error && response.statusCode == 200) {
                 eventEmitter.emit('shards.completed');
             } else {
-                console.log('Error with shards: ' + error);
+                console.log('Error with shards: ' + error + ' - ' + response.statusCode);
+                eventEmitter.emit('error');
             }
         })
     });
@@ -146,7 +150,8 @@
                 userAccounts = JSON.parse(body); // Save user accounts
                 eventEmitter.emit('accounts.completed');
             } else {
-                console.log('Error with accounts: ' + error);
+                console.log('Error with accounts: ' + error + ' - ' + response.statusCode);
+                eventEmitter.emit('error');
             }
         })
     });
@@ -197,7 +202,8 @@
                 sessionId = body.sid; // Get Session ID
                 eventEmitter.emit('session.completed');
             } else {
-                console.log('Error with session: ' + error);
+                console.log('Error with session: ' + error + ' - ' + response.statusCode);
+                eventEmitter.emit('error');
             }
         })
     });
@@ -228,7 +234,8 @@
                 }
                 
             } else {
-                console.log('Error with phishing: ' + error);
+                console.log('Error with phishing: ' + error + ' - ' + response.statusCode);
+                eventEmitter.emit('error');
             }
         })
     });
@@ -255,7 +262,8 @@
                 phishingToken = JSON.parse(body).token;
                 eventEmitter.emit('validate.completed'); // Login is completed
             } else {
-                console.log('Error with validate: ' + error);
+                console.log('Error with validate: ' + error + ' - ' + response.statusCode);
+                eventEmitter.emit('error');
             }
         })
     });
@@ -281,6 +289,13 @@
 
         // Save the passed callback in the shared variable
         callback = localCallback;
+
+        // On error, restart the app
+        eventEmitter.on('error', function () {
+            setTimeout(function () {
+                eventEmitter.emit('app.start');
+            }, 2000);
+        });
 
         // Start the app
         eventEmitter.emit('app.start');
