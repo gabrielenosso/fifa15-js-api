@@ -1,10 +1,9 @@
 (function () {
     // Modules
     var events  = require('events'),     // Module to manage Events
-        request = require('request');    // Module to manage HTTP/HTTPS requests
+        request = require('request'),    // Module to manage HTTP/HTTPS requests
 
     // Vars
-    var eventEmitter = new events.EventEmitter(),  // The Events Emitter (events management)
         urls;                                      // Set of URLs to request
 
     // Returns the Nucleus Platform (a parameter to be sent in some requests)
@@ -38,6 +37,9 @@
     // Constructor
     function login() {
         var self = this;    // Own reference
+
+        // Create an own Events Emitter (events management)
+        self.eventEmitter = new events.EventEmitter();
     }
 
     // 1 - main
@@ -63,7 +65,7 @@
                 self.loginForm(url);
             } else {
                 console.log('Error with main: ' + error + ' - ' + response.statusCode);
-                eventEmitter.emit('error');
+                self.eventEmitter.emit('error');
             }
         });
     };
@@ -90,7 +92,7 @@
                 self.nucleus();
             } else {
                 console.log('Error with login: ' + error);
-                eventEmitter.emit('error');
+                self.eventEmitter.emit('error');
             }
         });
     };
@@ -110,14 +112,14 @@
                 bodyMatch = body.match(/var\ EASW_ID = '(\d*)';/);
                 if (bodyMatch === null) {
                     console.log('Nucleus response not as expected.');
-                    eventEmitter.emit('error');
+                    self.eventEmitter.emit('error');
                 } else {
                     self.nucleusId = body.match(/var\ EASW_ID = '(\d*)';/)[1]; // Get nucleus id
                     self.shards();
                 }
             } else {
                 console.log('Error with nucleus: ' + error + ' - ' + response.statusCode);
-                eventEmitter.emit('error');
+                self.eventEmitter.emit('error');
             }
         });
     };
@@ -145,7 +147,7 @@
                 self.accounts();
             } else {
                 console.log('Error with shards: ' + error + ' - ' + response.statusCode);
-                eventEmitter.emit('error');
+                self.eventEmitter.emit('error');
             }
         });
     };
@@ -180,7 +182,7 @@
                 self.session();
             } else {
                 console.log('Error with accounts: ' + error + ' - ' + response.statusCode);
-                eventEmitter.emit('error');
+                self.eventEmitter.emit('error');
             }
         });
     };
@@ -235,7 +237,7 @@
                 self.phishing();
             } else {
                 console.log('Error with session: ' + error + ' - ' + response.statusCode);
-                eventEmitter.emit('error');
+                self.eventEmitter.emit('error');
             }
         });
     };
@@ -271,7 +273,7 @@
                 
             } else {
                 console.log('Error with phishing: ' + error + ' - ' + response.statusCode);
-                eventEmitter.emit('error');
+                self.eventEmitter.emit('error');
             }
         });
     };
@@ -302,11 +304,11 @@
                     self.returnLogin(); // Login is completed
                 } else {
                     console.log('Error: received empty phishing token');
-                    eventEmitter.emit('error');
+                    self.eventEmitter.emit('error');
                 }
             } else {
                 console.log('Error with validate: ' + error + ' - ' + response.statusCode);
-                eventEmitter.emit('error');
+                self.eventEmitter.emit('error');
             }
         });
     };
@@ -339,7 +341,7 @@
         self.jar = request.jar();
 
         // On error, restart the app
-        eventEmitter.on('error', function () {
+        self.eventEmitter.on('error', function () {
             setTimeout(function () {
                 self.main();
             }, 15000);
