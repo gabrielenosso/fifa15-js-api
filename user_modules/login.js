@@ -4,14 +4,8 @@
         request = require('request');    // Module to manage HTTP/HTTPS requests
 
     // Vars
-    var callback,                                  // The function to invoke when the login is completed
-        eventEmitter = new events.EventEmitter(),  // The Events Emitter (events management)
-        loginDetails,                              // Stores login details
-        nucleusId,                                 // ID used by FUT
-        phishingToken,                             // Phishing token
-        sessionId,                                 // Session ID
-        urls,                                      // Set of URLs to request
-        userAccounts;                              // Object that stores user accounts info
+    var eventEmitter = new events.EventEmitter(),  // The Events Emitter (events management)
+        urls;                                      // Set of URLs to request
 
     // Returns the Nucleus Platform (a parameter to be sent in some requests)
     function getNucleusPlatform(platform) {
@@ -24,7 +18,6 @@
 
     // Set default values for requests
     request = request.defaults({
-        jar: true,
         followAllRedirects: true,
         headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.62 Safari/537.36'
@@ -42,10 +35,21 @@
         validate: 'https://www.easports.com/iframe/fut15/p/ut/game/fifa15/phishing/validate'
     };
 
+    // Constructor
+    function login() {
+        var self = this;    // Own reference
+    }
+
     // 1 - main
-    eventEmitter.on('app.start', function () {
+    login.prototype.main = function () {
+        var self = this;    // Own reference
+
         process.stdout.write('logging');
-        request(urls.main, function (error, response, body) {
+
+        request({
+            url: urls.main,
+            jar: self.jar
+        }, function (error, response, body) {
             var url; // Current url
             if (!error && response.statusCode == 200) {
                 url = response.request.host + response.request.path;
@@ -55,22 +59,27 @@
                 } else {
                     url = 'https://' + url;
                 }
-                
-                eventEmitter.emit('main.completed', url);
+
+                self.loginForm(url);
             } else {
                 console.log('Error with main: ' + error + ' - ' + response.statusCode);
                 eventEmitter.emit('error');
             }
-        })
-    });
+        });
+    };
 
-    // 2 - login
-    eventEmitter.on('main.completed', function (url) {
+    // 2 - login form
+    login.prototype.loginForm = function (url) {
+        var self = this;    // Own reference
+
         process.stdout.write('.');
-        request.post(url, {
+
+        request.post({
+            url: url,
+            jar: self.jar,
             form: {
-                'email': loginDetails['email'],
-                'password': loginDetails['password'],
+                'email': self.loginDetails.email,
+                'password': self.loginDetails.password,
                 '_rememberMe': 'on',
                 'rememberMe': 'on',
                 '_eventId': 'submit',
@@ -78,35 +87,52 @@
             }
         }, function (error, response, body) {
             if (!error && response.statusCode == 200) {
-                eventEmitter.emit('login.completed');
+                self.nucleus();
             } else {
-                console.log('Error with login: ' + error + ' - ' + response.statusCode);
+                console.log('Error with login: ' + error);
                 eventEmitter.emit('error');
             }
-        })
-    });
+        });
+    };
 
     // 3 - nucleus
-    eventEmitter.on('login.completed', function () {
+   login.prototype.nucleus = function () {
+    var self = this;    // Own reference
+
         process.stdout.write('.');
-        request(urls.nucleus, function (error, response, body) {
+
+        request({
+            url: urls.nucleus,
+            jar: self.jar
+        }, function (error, response, body) {
+            var bodyMatch;
             if (!error && response.statusCode == 200) {
-                nucleusId = body.match(/var\ EASW_ID = '(\d*)';/)[1]; // Get nucleus id
-                eventEmitter.emit('nucleus.completed');
+                bodyMatch = body.match(/var\ EASW_ID = '(\d*)';/);
+                if (bodyMatch === null) {
+                    console.log('Nucleus response not as expected.');
+                    eventEmitter.emit('error');
+                } else {
+                    self.nucleusId = body.match(/var\ EASW_ID = '(\d*)';/)[1]; // Get nucleus id
+                    self.shards();
+                }
             } else {
                 console.log('Error with nucleus: ' + error + ' - ' + response.statusCode);
                 eventEmitter.emit('error');
             }
-        })
-    });
+        });
+    };
 
     // 4 - shards
-    eventEmitter.on('nucleus.completed', function () {
+    login.prototype.shards = function () {
+        var self = this;    // Own reference
+
         process.stdout.write('.');
+
         request({
             url: urls.shards,
+            jar: self.jar,
             headers: {
-                'Easw-Session-Data-Nucleus-Id': nucleusId,
+                'Easw-Session-Data-Nucleus-Id': self.nucleusId,
                 'X-UT-Embed-Error': 'true',
                 'X-UT-Route': 'https://utas.fut.ea.com',
                 'X-Requested-With': 'XMLHttpRequest',
@@ -116,30 +142,33 @@
             }
         }, function (error, response, body) {
             if (!error && response.statusCode == 200) {
-                eventEmitter.emit('shards.completed');
+                self.accounts();
             } else {
                 console.log('Error with shards: ' + error + ' - ' + response.statusCode);
                 eventEmitter.emit('error');
             }
-        })
-    });
+        });
+    };
 
     // 5 - accounts
-    eventEmitter.on('shards.completed', function () {
+    login.prototype.accounts = function () {
+        var self = this;    // Own reference
+
         // Get route
-        if (loginDetails.platform === 'XBOX') {
-            loginDetails.route = 'https://utas.fut.ea.com:443';    // XBOX
+        if (self.loginDetails.platform === 'XBOX') {
+            self.loginDetails.route = 'https://utas.fut.ea.com:443';    // XBOX
         } else {
-            loginDetails.route = 'https://utas.s2.fut.ea.com:443'; // PS
+            self.loginDetails.route = 'https://utas.s2.fut.ea.com:443'; // PS
         }
 
         process.stdout.write('.');
         request({
             url: urls.userinfo,
+            jar: self.jar,
             headers: {
-                'Easw-Session-Data-Nucleus-Id': nucleusId,
+                'Easw-Session-Data-Nucleus-Id': self.nucleusId,
                 'X-UT-Embed-Error': 'true',
-                'X-UT-Route': loginDetails.route,
+                'X-UT-Route': self.loginDetails.route,
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json, text/javascript',
                 'Accept-Language': 'en-US,en;q=0.8',
@@ -147,33 +176,34 @@
             }
         }, function (error, response, body) {
             if (!error && response.statusCode == 200) {
-                userAccounts = JSON.parse(body); // Save user accounts
-                eventEmitter.emit('accounts.completed');
+                self.userAccounts = JSON.parse(body); // Save user accounts
+                self.session();
             } else {
                 console.log('Error with accounts: ' + error + ' - ' + response.statusCode);
                 eventEmitter.emit('error');
             }
-        })
-    });
+        });
+    };
 
     // 6 - session
-    eventEmitter.on('accounts.completed', function () {
-        var dataString,           // String to be sent as the message of the POST request
+    login.prototype.session = function () {
+        var self = this,          // Own reference
+            dataString,           // String to be sent as the message of the POST request
             personaId,            // ID of the persona
             personaName,          // Name of the persona
             platform;             // Name of the console (or pc)
             
         // Get persona info
-        personaId   = userAccounts['userAccountInfo']['personas'][0]['personaId'];
-        personaName = userAccounts['userAccountInfo']['personas'][0]['personaName'];
-        platform    = getNucleusPlatform(loginDetails.platform);
+        personaId   = self.userAccounts.userAccountInfo.personas[0].personaId;
+        personaName = self.userAccounts.userAccountInfo.personas[0].personaName;
+        platform    = getNucleusPlatform(self.loginDetails.platform);
 
         // Create data string to send with POST request
         dataString = JSON.stringify({
             'isReadOnly': false,
             'sku': 'FUT15WEB',
             'clientVersion': 1,
-            'nuc': nucleusId,
+            'nuc': self.nucleusId,
             'nucleusPersonaId': personaId,
             'nucleusPersonaDisplayName': personaName,
             'nucleusPersonaPlatform': platform,
@@ -184,13 +214,15 @@
         });
 
         process.stdout.write('.');
-        request.post(urls.session, {
+        request.post({
+            url: urls.session,
+            jar: self.jar,
             body: dataString,
             json: true,
             headers: {
-                'Easw-Session-Data-Nucleus-Id': nucleusId,
+                'Easw-Session-Data-Nucleus-Id': self.nucleusId,
                 'X-UT-Embed-Error': 'true',
-                'X-UT-Route': loginDetails.route,
+                'X-UT-Route': self.loginDetails.route,
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept-Language': 'en-US:en;q=0.8',
                 'Referer': 'http://www.easports.com/iframe/fut/?baseShowoffUrl=http%3A%2F%2Fwww.easports.com%2Fuk%2Ffifa%2Ffootball-club%2Fultimate-team%2Fshow-off&guest_app_uri=http%3A%2F%2Fwww.easports.com%2Fuk%2Ffifa%2Ffootball-club%2Fultimate-team&locale=en_GB',
@@ -199,26 +231,30 @@
             }
         }, function (error, response, body) {
             if (!error && response.statusCode == 200) {
-                sessionId = body.sid; // Get Session ID
-                eventEmitter.emit('session.completed');
+                self.sessionId = body.sid; // Get Session ID
+                self.phishing();
             } else {
                 console.log('Error with session: ' + error + ' - ' + response.statusCode);
                 eventEmitter.emit('error');
             }
-        })
-    });
+        });
+    };
 
     // 7 - phishing
-    eventEmitter.on('session.completed', function () {
+    login.prototype.phishing = function () {
+        var self = this;    // Own reference
+
         process.stdout.write('.');
+
         request({
             url: urls.phishing,
+            jar: self.jar,
             json: true,
             headers: {
-                'Easw-Session-Data-Nucleus-Id': nucleusId,
+                'Easw-Session-Data-Nucleus-Id': self.nucleusId,
                 'X-UT-Embed-Error': 'true',
-                'X-UT-Route': loginDetails.route,
-                'X-UT-SID': sessionId,
+                'X-UT-Route': self.loginDetails.route,
+                'X-UT-SID': self.sessionId,
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept-Language': 'en-US:en;q=0.8',
                 'Referer': 'http://www.easports.com/iframe/fut/?baseShowoffUrl=http%3A%2F%2Fwww.easports.com%2Fuk%2Ffifa%2Ffootball-club%2Fultimate-team%2Fshow-off&guest_app_uri=http%3A%2F%2Fwww.easports.com%2Fuk%2Ffifa%2Ffootball-club%2Fultimate-team&locale=en_GB'
@@ -227,79 +263,91 @@
             if (!error && response.statusCode == 200) {
                 // Check if phishing is validated
                 if (typeof body.debug !== 'undefined' && body.debug === "Already answered question.") {
-                    phishingToken = body.token;
-                    eventEmitter.emit('validate.completed'); // Login is completed
+                    self.phishingToken = body.token;
+                    self.returnLogin(); // Login is completed
                 } else {
-                    eventEmitter.emit('phishing.completed'); // Validation is needed to complete login
+                    self.validate();
                 }
                 
             } else {
                 console.log('Error with phishing: ' + error + ' - ' + response.statusCode);
                 eventEmitter.emit('error');
             }
-        })
-    });
+        });
+    };
 
     // 8 - validate
-    eventEmitter.on('phishing.completed', function () {
-        var dataString;           // String to be sent as the message of the POST request
+    login.prototype.validate = function () {
+        var self = this,    // Own reference
+            dataString;     // String to be sent as the message of the POST request
 
-        dataString = 'answer=' + loginDetails.hash; // Set POST data (hashed answer)
+        dataString = 'answer=' + self.loginDetails.hash; // Set POST data (hashed answer)
 
         process.stdout.write('.');
         request.post({
             url: urls.validate,
+            jar: self.jar,
             body: dataString,
             headers: {
-                'X-UT-SID': sessionId,
-                'X-UT-Route': loginDetails.route,
-                'Easw-Session-Data-Nucleus-Id': nucleusId,
+                'X-UT-SID': self.sessionId,
+                'X-UT-Route': self.loginDetails.route,
+                'Easw-Session-Data-Nucleus-Id': self.nucleusId,
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'Content-Length': dataString.length
             }
         }, function (error, response, body) {
             if (!error) {
-                phishingToken = JSON.parse(body).token;
-                eventEmitter.emit('validate.completed'); // Login is completed
+                if (body.trim() !== '') {
+                    self.phishingToken = JSON.parse(body).token;
+                    self.returnLogin(); // Login is completed
+                } else {
+                    console.log('Error: received empty phishing token');
+                    eventEmitter.emit('error');
+                }
             } else {
                 console.log('Error with validate: ' + error + ' - ' + response.statusCode);
                 eventEmitter.emit('error');
             }
-        })
-    });
+        });
+    };
 
     // 9 - return the login response
-    eventEmitter.on('validate.completed', function () {
+    login.prototype.returnLogin = function () {
+        var self = this;    // Own reference
+
         console.log('success!');
 
         // Invoke the callback, passing the object with login session info
-        callback({
-            'nucleusId': nucleusId,
-            'userAccounts': userAccounts,
-            'sessionId': sessionId,
-            'phishingToken': phishingToken,
-            'platform': loginDetails.platform
+        self.callback({
+            'nucleusId': self.nucleusId,
+            'userAccounts': self.userAccounts,
+            'sessionId': self.sessionId,
+            'phishingToken': self.phishingToken,
+            'platform': self.loginDetails.platform
         });
-    });
+    };
 
-    // The function to run to start the login process
-    function login (localLoginDetails, localCallback) {
-        // Save Login Details in the shared variable
-        loginDetails = localLoginDetails;
+    // Method to start the login process
+    login.prototype.login = function (loginDetails, callback) {
+        var self = this;    // Own reference
 
-        // Save the passed callback in the shared variable
-        callback = localCallback;
+        // Save arguments in properties
+        self.loginDetails = loginDetails;
+        self.callback = callback;
+
+        // Create cookie
+        self.jar = request.jar();
 
         // On error, restart the app
         eventEmitter.on('error', function () {
             setTimeout(function () {
-                eventEmitter.emit('app.start');
-            }, 2000);
+                self.main();
+            }, 15000);
         });
 
         // Start the app
-        eventEmitter.emit('app.start');
-    }
+        self.main();
+    };
 
     // Export the module
     module.exports = login;
