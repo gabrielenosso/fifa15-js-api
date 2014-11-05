@@ -80,5 +80,9 @@ function mainLoop(loginData) {
 // Get the hashed answer and save it in login details
 loginDetails.hash = hash(loginDetails.answer);
 
+// Create login and futapi instances
+login = new login();
+futapi = new futapi();
+
 // Login to FUT, then start the main loop
-login(loginDetails, mainLoop);
+login.login(loginDetails, mainLoop);
