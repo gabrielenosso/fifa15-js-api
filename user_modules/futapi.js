@@ -89,12 +89,12 @@
      * @param  {Number}   maxBin    Maximum Buy Now price
      * @param  {Number}   start     Search offset
      * @param  {Number}   num       Number of offers to return (maximum = 16)
-     * @param  {Function} success   The function that will be invoked when the request is completed successfully.
+     * @param  {Function} successCb Success callback: the function that will be invoked when the request is completed successfully.
      *                              It will be invoked with a single parameter: an object containing the auctions details.
-     * @param  {Function} error     The function that will be invoked when an error happens.
+     * @param  {Function} errorCb   Error callback: the function that will be invoked when an error happens.
      *                              It will be invoked with a single parameter: the error.
      */
-    futapi.prototype.playerSearch = function (playerId, minBin, maxBin, start, num, success, error) {
+    futapi.prototype.playerSearch = function (playerId, minBin, maxBin, start, num, successCb, errorCb) {
         var self = this,        // Own reference
             searchString = '';  // String that contains all parameters to be sent with the request
 
@@ -127,10 +127,10 @@
             json: true
         }, function (error, response, body) {
             if (!error && response.statusCode == 200) {
-                success(body);
+                successCb(body);
             } else {
                 console.log('Error with playerSearch(): ' + error);
-                error(error);
+                errorCb(error);
             }
         });
     };
