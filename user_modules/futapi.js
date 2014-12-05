@@ -30,7 +30,10 @@
         // Set default values for requests
         self.request = request.defaults({
             followAllRedirects: true,
+            gzip: true,
+            pool: {maxSockets: Infinity},
             headers: {
+                'Connection': 'Keep-Alive',
                 'User-Agent': 'Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.62 Safari/537.36',
                 'Origin': 'http://www.easports.com',
                 'Referer': 'http://www.easports.com/iframe/fut/bundles/futweb/web/flash/FifaUltimateTeam.swf',
@@ -45,7 +48,7 @@
     /**
      * Get Club credits
      * @param  {Function} callback The function that will be invoked when the request is completed.
-     *                             It will be invoked with a single parameter: the available credits (Number)
+     *                             It will be invoked with 2 parametera: error and the available credits (Number)
      */
     futapi.prototype.getCredits = function (callback) {
         var self = this;    // Own reference
@@ -54,9 +57,9 @@
             json: true
         }, function (error, response, body) {
             if (!error && response.statusCode == 200) {
-                callback(body.credits);
+                callback(null, body.credits);
             } else {
-                console.log('Error with getCredits(): ' + error);
+                callback(error);
             }
         });
     };
@@ -65,7 +68,7 @@
      * Get info on a trade
      * @param  {Number}   tradeId  ID of the trade
      * @param  {Function} callback The function that will be invoked when the request is completed.
-     *                             It will be invoked with a single parameter: an object containing the trade details.
+     *                             It will be invoked with 2 parameters: error and an object containing the trade details.
      * 
      */
     futapi.prototype.tradeInfo = function (tradeId, callback) {
@@ -75,9 +78,9 @@
             json: true
         }, function (error, response, body) {
             if (!error && response.statusCode == 200) {
-                callback(body);
+                callback(null, body);
             } else {
-                console.log('Error with tradeInfo(): ' + error);
+                callback(error);
             }
         });
     };
@@ -89,10 +92,8 @@
      * @param  {Number}   maxBin    Maximum Buy Now price
      * @param  {Number}   start     Search offset
      * @param  {Number}   num       Number of offers to return (maximum = 16)
-     * @param  {Function} successCb Success callback: the function that will be invoked when the request is completed successfully.
-     *                              It will be invoked with a single parameter: an object containing the auctions details.
-     * @param  {Function} errorCb   Error callback: the function that will be invoked when an error happens.
-     *                              It will be invoked with a single parameter: the error.
+     * @param  {Function} callback  The function that will be invoked when the request is completed successfully.
+     *                              It will be invoked with 3 parameters: error and 2 object, one containing the http response and one the auctions details.
      */
     futapi.prototype.playerSearch = function (playerId, minBin, maxBin, start, num, successCb, errorCb) {
         var self = this,        // Own reference
@@ -127,10 +128,9 @@
             json: true
         }, function (error, response, body) {
             if (!error && response.statusCode == 200) {
-                successCb(body);
+                callback(null, response, body);
             } else {
-                console.log('Error with playerSearch(): ' + error);
-                errorCb(error);
+                callback(error);
             }
         });
     };
@@ -140,7 +140,7 @@
      * @param  {Number}   tradeId  ID of the trade
      * @param  {Number}   bid      Credits for the bin
      * @param  {Function} callback The function that will be invoked when the request is completed.
-     *                             It will be invoked with a single parameter: an object containing the bid result details.
+     *                             It will be invoked with 2 parameters: error and an object containing the bid result details.
      */
     futapi.prototype.bid = function (tradeId, bid, callback) {
         var self = this,    // Own reference
@@ -161,9 +161,9 @@
             }
         }, function (error, response, body) {
             if (!error && response.statusCode == 200) {
-                callback(body);
+                callback(null, body);
             } else {
-                console.log('Error with bid(): ' + error);
+                callback(error);
             }
         });
     };
@@ -174,8 +174,8 @@
      * @param  {Number}  bin         Buy now price
      * @param  {Number}  startingBid Starting price
      * @param  {Number}  duration    Duration in seconds (3600 = 1h)
-     * @param {Function} callback    The function that will be invoked when the request is completed.
-     *                               It will be invoked with a single parameter: an object containing the result.
+     * @param  {Function} callback   The function that will be invoked when the request is completed.
+     *                               It will be invoked with 2 parameters: error and an object containing the result.
      */
     futapi.prototype.listAuction = function(id, bin, startingBid, duration, callback) {
         var self = this,    // Own reference
@@ -199,9 +199,9 @@
             }
         }, function (error, response, body) {
             if (!error && response.statusCode == 200) {
-                callback(body);
+                callback(null, body);
             } else {
-                console.log('Error with listAuction(): ' + error);
+                callback(error);
             }
         });
     };
@@ -210,7 +210,7 @@
      * Send a card to the trade pile (transfer list) without putting it on the market.
      * @param {Number}  id          ID of the card
      * @param {Function} callback    The function that will be invoked when the request is completed.
-     *                               It will be invoked with a single parameter: a boolean that is true if the
+     *                               It will be invoked with 2 parameters: error and a boolean that is true if the
      *                               item was moved successfully, false otherwise.
      */
     futapi.prototype.sendToTradePile = function (id, callback) {
@@ -235,9 +235,9 @@
             }
         }, function (error, response, body) {
             if (!error && response.statusCode == 200) {
-                callback(body.itemData[0].success);
+                callback(null, body.itemData[0].success);
             } else {
-                console.log('Error with sendToTradePile(): ' + error);
+                callback(error);
             }
         });
     };
@@ -246,7 +246,7 @@
      * Get the Trade Pile.
      * It is  the Transfer List page and it contains: Sold Items, Current transfers (your cards on market), Available items.
      * @param  {Function} callback The function that will be invoked when the request is completed.
-     *                             It will be invoked with a single parameter: an object containing the trade pile.
+     *                             It will be invoked with 2 parameters: error and an object containing the trade pile.
      */
     futapi.prototype.getTradePile = function (callback) {
         var self = this;    // Own reference
@@ -256,9 +256,9 @@
             json: true
         }, function (error, response, body) {
             if (!error && response.statusCode == 200) {
-                callback(body);
+                callback(null, body);
             } else {
-                console.log('Error with getTradePile(): ' + error);
+                callback(error);
             }
         });
     };
@@ -267,16 +267,16 @@
      * Get the Watch List.
      * It is the Transfer Target page and it contains: Expired, Active and Watched auctions. 
      * @param  {Function} callback The function that will be invoked when the request is completed.
-     *                             It will be invoked with a single parameter: an object containing the watch list.
+     *                             It will be invoked with 2 parameters: error and an object containing the watch list.
      */
     futapi.prototype.getWatchList = function (callback) {
         var self = this;    // Own reference
 
         self.request(self.host + '/ut/game/fifa15/watchlist', function (error, response, body) {
             if (!error && response.statusCode == 200) {
-                callback(body);
+                callback(null, body);
             } else {
-                console.log('Error with getWatchList(): ' + error);
+                callback(error);
             }
         });
     };
@@ -284,7 +284,7 @@
     /**
      * Remove card from sold items list
      * @param  {Number}   tradeId  ID of the trade
-     * @param  {Function} callback It will be invoked with a single parameter: an object containing the result of the operation.
+     * @param  {Function} callback It will be invoked with 2 parameters: error and an object containing the result of the operation.
      */
     futapi.prototype.removeSold = function (tradeId, callback) {
         var self = this;    // Own reference
@@ -297,9 +297,9 @@
             }
         }, function (error, response, body) {
             if (!error && response.statusCode == 200) {
-                callback(body);
+                callback(null, body);
             } else {
-                console.log('Error with removeSold(): ' + error);
+                callback(error);
             }
         });
     };
@@ -308,7 +308,7 @@
      * Get Purchased cards.
      * It is the page Unassigned, it lists cards purchased with Buy Now. 
      * @param  {Function} callback The function that will be invoked when the request is completed.
-     *                             It will be invoked with a single parameter: an object containing the watch list.
+     *                             It will be invoked with 2 parameters: error and an object containing the watch list.
      */
     futapi.prototype.getPurchased = function (callback) {
         var self = this;    // Own reference
@@ -318,9 +318,9 @@
             json: true
         }, function (error, response, body) {
             if (!error && response.statusCode == 200) {
-                callback(body);
+                callback(null, body);
             } else {
-                console.log('Error with getPurchased(): ' + error);
+                callback(error);
             }
         });
     };
