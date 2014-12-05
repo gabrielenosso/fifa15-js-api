@@ -95,7 +95,7 @@
      * @param  {Function} callback  The function that will be invoked when the request is completed successfully.
      *                              It will be invoked with 3 parameters: error and 2 object, one containing the http response and one the auctions details.
      */
-    futapi.prototype.playerSearch = function (playerId, minBin, maxBin, start, num, successCb, errorCb) {
+    futapi.prototype.playerSearch = function (playerId, minBin, maxBin, start, num, callback) {
         var self = this,        // Own reference
             searchString = '';  // String that contains all parameters to be sent with the request
 
